@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo1 - getUserMedia</title>
+    <style>
+      video {
+        width: 80%;
+        background-color: #333;
+      }
+    </style>
+  </head>
+  <body>
+    <video autoplay playsinline></video>
+    <!-- point1 video标签属性 autoplay：自动播放； playsinline 不希望用户拖动进度条 -->
+    <section>
+      <button id="btn">open camera</button>
+      <button type="button" id="qvga">QVGA</button>
+      <button type="button" id="vga">VGA</button>
+      <button type="button" id="hd">HD</button>
+      <button type="button" id="close">close camera</button>
+      <p id="info"></p>
+    </section>
+    <script>
+      let localStream;
+      const constraints = (window.constraints = {
+        audio: false,
+        video: true, //打开摄像头
+        // video: {
+        //   facingMode: {
+        //     exact: "environment",
+        //   },//强制使用前置摄像头
+        // },
+        // video:{ wdith:720, height:540 }  //指定分辨率
+        // video:{ width: { ideal: 1080 }, height: { max: 1000} }  //理想的分辨率，无法匹配时会返回适合的分辨率
+      });
+      //   point 2 获取用户音视频设备传递制定配置，
+      document
+        .getElementById("btn")
+        .addEventListener("click", async (event) => {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia(
+              constraints
+            );
+            // point3 mediaDevices是Navigator的只读属性，是一个约束对象，
+            //          可提供对相机和麦克风等媒体输入设备的连接访问，也包括屏幕共享等
+
+            //point4 getUserMedia 获取用户本地设备的方法，返回一个promise对象，包含一个媒体内容的流；
+            //          一个流包含多个轨道（视频、音频轨道等）
+            const video = document.querySelector("video");
+            video.srcObject = stream;
+            localStream = stream;
+            //point5 srcObject
+          } catch (error) {
+            alert(error.name);
+          }
+        });
+      //question1:如何知道自己本地摄像头的分辨率
+      //question2:设置最小的摄像哦图分辨率是否生效？最大能够设置多少？
+      /*question3:如何设置会报错？报错类型？
+        【getUserMedia】https://developer.mozilla.org/zh-CN/docs/Web/API/MediaDevices/getUserMedia
+          AbortError［中止错误］
+          NotAllowedError［拒绝错误］
+          NotFoundError［找不到错误］
+          NotReadableError［无法读取错误］
+          OverConstrainedError［无法满足要求错误］
+          SecurityError［安全错误］
+          TypeError［类型错误］
+      */
+      /*question4:返回的stream的格式？file对象，blob对象？
+        【File】https://developer.mozilla.org/zh-CN/docs/Web/API/File
+        【在web应用程序中使用文件】https://developer.mozilla.org/zh-CN/docs/Web/API/File/Using_files_from_web_applications
+        【Blob（Binary Large Object）】Blob 对象表示一个不可变、原始数据的类文件对象。它的数据可以按文本或二进制的格式进行读取，也可以转换成 ReadableStream 来用于数据操作；
+          参考1：https://developer.mozilla.org/zh-CN/docs/Web/API/Blob
+          参考2：https://www.cnblogs.com/cheng825/p/11694348.html
+        【MIME】Multipurpose Internet Mail Extensions
+      */
+      /*question5:给video设置src和srcObject有啥区别？
+          src是标签的一个属性，可以赋值或者返回一个url，会显示在页面中;
+          srcObject是一个HTMLMediaElement接口的一个属性，可以赋值或者返回一个MediaStream对象，或者是MediaSource、Blob以及File对象，并不会显示在页面上
+        */
+      const qvga = document.querySelector("#qvga");
+      const vga = document.querySelector("#vga");
+      const hd = document.querySelector("#hd");
+      const closeBtn = document.querySelector("#close");
+      const localVideo = document.querySelector("video");
+
+      let qvgaConstraints = {
+        video: {
+          width: 320,
+          height: 180,
+        },
+      };
+      let vgaConstraints = {
+        video: {
+          width: 640,
+          height: 360,
+        },
+      };
+      let hdConstraints = {
+        video: {
+          width: 1280,
+          height: 720,
+        },
+      };
+
+      function gotLocalMediaStream(mediaStream) {
+        localStream = mediaStream;
+        localVideo.srcObject = mediaStream;
+      }
+
+      function getMedia(mediaStreamConstraints) {
+        closeMedia();
+        navigator.mediaDevices
+          .getUserMedia(mediaStreamConstraints)
+          .then(gotLocalMediaStream)
+          .catch((error) => {
+            console.log("navigator.getUserMedia error: ", error);
+          }
+          );
+      }
+        
+      function closeMedia() {
+        if (localStream) {
+          localStream.getVideoTracks()[0].stop();
+        }
+      }
+      qvga.onclick = function () {
+        getMedia(qvgaConstraints);
+      };
+
+      vga.onclick = function () {
+        getMedia(vgaConstraints);
+      };
+
+      hd.onclick = function () {
+        getMedia(hdConstraints);
+      };
+      
+      closeBtn.onclick = () => {
+        closeMedia()
+      };
+
+      localVideo.onplay = function () {
+        // 必须要设置onplay事件，因为视频没播放的话，宽和高都是0
+        // videoWidth vs width，一个是视频的pixel，一个是标签的css值
+        info.innerText =
+          localVideo.videoWidth + "x" + localVideo.videoHeight + "px";
+      };
+    </script>
+  </body>
+</html>
